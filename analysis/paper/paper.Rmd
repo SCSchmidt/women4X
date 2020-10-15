@@ -1,17 +1,17 @@
 ---
-title: "Title Goes Here"
+title: "Analysing female representation in digital historical 4X games"
 author:
-  - Myfirstname Mylastname:
-      email: fl@oneplace.edu
-      institute: [UofO]
+  - Sophie C. Schmidt:
+      email: s.c.schmidt@uni-koeln.de
+      institute: [DAI]
       correspondence: true
-  - Yourfirstname Yourlastname:
-      email: fl@another.edu
-      institute: [UofA]
+  - Tine Rassalle:
+      email: tinerassalle@hotmail.com 
+      institute: [UNCCH]
       correspondence: false
 institute:
-  - UofO: University of One Place
-  - UofA: University of Another Place
+  - DAI: Deutsches Archäologisches Institut
+  - UNCCH: University of North Carolina at Chapel Hill
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
     bookdown::word_document2:
@@ -55,40 +55,145 @@ knitr::opts_chunk$set(
 
 <!-- The actual document text starts here: -->
 
-# Introduction
+# load data
 
-Here is a citation [@Marwick2017]
+```{r}
+charas <- readODS::read_ods("../data/raw_data/female_charas_2020-10-14.ods")
 
-# Background
+leaders <- readODS::read_ods("../data/raw_data/female_leaders_2020-10-14.ods")
 
-# Methods
-
-# Results
-
-<!-- Here's some example analysis code: -->
-
-```{r get-data, eval = FALSE}
-# Note the path that we need to use to access our data files when rendering this document
-my_data <- read.csv(here::here('analysis/data/raw_data/my_csv_file.csv'))
 ```
 
-```{r demo-plot, fig.cap="A plot of random numbers"}
-plot(rnorm(10))
+# leader ratios time series analysis
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+
+ggplot(data = leaders) +
+  geom_point(aes(x = release_date,
+             y = nr_female_leaders), 
+             col = "green")+
+  geom_line(aes(x = release_date,
+             y = nr_female_leaders), 
+             col = "green")+
+    geom_point(aes(x = release_date,
+             y = nr_male_leaders), 
+             col = "blue")+
+  geom_line(aes(x = release_date,
+             y = nr_male_leaders), 
+             col = "blue")
+
 ```
 
-Figure \@ref(fig:demo-plot) shows how we can have a caption and cross-reference for a plot
+Daten umformen, so dass entsteht:
 
-```{r demo-inline-code}
-x <- round(pi, 2)
+ * Verhältniswert Frauen / Männer + Frauen
+ * kumulativ zusammengerechnet für jede Spiel (original + erweiterungen)
+
+
+```{r}
+
+leaders2 <- readODS::read_ods("../data/raw_data/female_leaders_2020-10-15.ods")
+
+leaders2$ratio <- leaders2$nr_female_leaders / (leaders2$nr_female_leaders + leaders2$nr_male_leaders)
+
+library(dplyr)
+library(magrittr)
+library(stringr)
+library(ggrepel)
+
+dates <- leaders2 %>%
+  filter(str_detect(expansion, 'original'))%>%
+  use_series(release_date)
+
+leaders2 %>%
+  arrange(release_date)%>%
+  group_by(game) %>%
+  mutate(sum_ratio = cumsum(nr_female_leaders)/(cumsum(nr_male_leaders)+ cumsum(nr_female_leaders)))%>%
+  ggplot(aes(x = release_date,
+             y = sum_ratio,
+             col = series,
+             label = game))+
+    geom_hline(yintercept = 0.0)+
+   geom_hline(yintercept = 0.5, linetype = "dashed")+
+  geom_point()+
+  geom_line() +
+  geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Civ')),
+                  size          = 4,
+                  box.padding   = 0.5,
+                  point.padding = 0.5,
+                  line.padding  = 0.5,
+                  force         = 100,
+                  segment.size  = 0.2,
+                  nudge_y       = 0.2)+
+    geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Age')),
+                  size          = 4,
+                  box.padding   = 0.5,
+                  point.padding = 0.5,
+                  force         = 100,
+                  segment.size  = 0.2,
+                  nudge_y       = -0.2)+
+  theme_minimal()+
+  scale_x_date(expand = expansion(mult = c(0.2, .2)),
+               name = "Release Date") +
+  scale_y_continuous(expand = expansion(mult = c(0.2, .2)),
+                     name = "Ratio of female AI leaders",
+                     breaks = seq(0.0, 0.6, 0.1))
+
+
+
 ```
 
-Here is an example of inline code `r x` in the middle of a sentence. 
 
-# Discussion
+Absolute Zahlen ausprobieren:
 
-# Conclusion
+```{r}
 
-# Acknowledgements
+leaders2 %>%
+  arrange(release_date)%>%
+  group_by(game) %>%
+  mutate(sum_female = cumsum(nr_female_leaders))%>%
+    mutate(sum_male = cumsum(nr_male_leaders))%>%
+  ggplot(aes(x = release_date,
+             col = series,
+             label = game))+
+  geom_point(aes(y = sum_female))+
+  geom_line(aes(y = sum_female)) +
+    geom_point(aes(y = sum_male,
+                   alpha = 0.7))+
+  geom_line(aes(y = sum_male,
+                alpha = 0.7))+
+  facet_grid(~game)
+  
+geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Civ')),
+                  size          = 4,
+                  box.padding   = 0.5,
+                  point.padding = 0.5,
+                  line.padding  = 0.5,
+                  force         = 100,
+                  segment.size  = 0.2,
+                  nudge_y       = 0.2)+
+    geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Age')),
+                  size          = 4,
+                  box.padding   = 0.5,
+                  point.padding = 0.5,
+                  force         = 100,
+                  segment.size  = 0.2,
+                  nudge_y       = -0.2)+
+  theme_minimal()+
+  scale_x_date(expand = expansion(mult = c(0.2, .2)),
+               name = "Release Date") +
+  scale_y_continuous(expand = expansion(mult = c(0.2, .2)),
+                     name = "Ratio of female AI leaders",
+                     breaks = seq(0.0, 0.6, 0.1))
+
+
+
+
+```
+
 
 <!-- The following line inserts a page break  -->
 
