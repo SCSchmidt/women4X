@@ -58,8 +58,6 @@ knitr::opts_chunk$set(
 # load data
 
 ```{r}
-charas <- readODS::read_ods("../data/raw_data/female_charas_2020-10-14.ods")
-
 leaders <- readODS::read_ods("../data/raw_data/female_leaders_2020-10-14.ods")
 
 ```
@@ -144,7 +142,7 @@ leaders2 %>%
                      name = "cumulative ratio",
                      breaks = seq(0.0, 0.6, 0.1))
 
-ggsave("leaders_cumulative.png", dpi = 300)
+ggsave("../figures/leaders_cumulative.png", dpi = 300)
 
 ```
 
@@ -194,6 +192,40 @@ geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filt
 
 
 
+```
+
+
+# Characters
+
+```{r}
+charas <- readODS::read_ods("../data/raw_data/female_charas_2020-10-14.ods")
+
+
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+
+safe_colorblind_palette <- c( "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+
+colorblind_palette9 <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+
+charas %>%
+  count(figure_standardized, culture)%>%
+  #group_by(figure_standardized) %>%          # now required with changes to dplyr::count()
+  filter(n > 1)%>%
+  ggplot()+
+  geom_col(aes(x = reorder(figure_standardized, n),
+               y = n,
+               fill = culture))+
+  xlab("named figures")+
+  ylab("number of mentions")+
+  scale_fill_manual(breaks = c("Spain", "England", "China", "Egypt", "Russia", "Celts", "Ethiopian", "all", "Byzantine", "France", "Amazones (Incas)"),
+                    values = colorblind_palette9)+
+  theme_bw()+
+  coord_flip()
+  
+ggsave("../figures/named_women.png", dpi = 300)  
 ```
 
 
