@@ -95,9 +95,9 @@ Daten umformen, so dass entsteht:
 
 ```{r}
 
-leaders2 <- readODS::read_ods("../data/raw_data/female_leaders_2020-10-15.ods")
+leaders2 <- readODS::read_ods("../data/raw_data/female_leaders_2020-10-21.ods")
 
-leaders2$ratio <- leaders2$nr_female_leaders / (leaders2$nr_female_leaders + leaders2$nr_male_leaders)
+leaders2$ratio <- leaders2$nr_female_leaders*100 / (leaders2$nr_female_leaders + leaders2$nr_male_leaders)
 
 library(dplyr)
 library(magrittr)
@@ -111,38 +111,42 @@ dates <- leaders2 %>%
 leaders2 %>%
   arrange(release_date)%>%
   group_by(game) %>%
-  mutate(sum_ratio = cumsum(nr_female_leaders)/(cumsum(nr_male_leaders)+ cumsum(nr_female_leaders)))%>%
+  mutate(sum_ratio = cumsum(nr_female_leaders)*100/(cumsum(nr_male_leaders)+ cumsum(nr_female_leaders)))%>%
   ggplot(aes(x = release_date,
              y = sum_ratio,
              col = series,
              label = game))+
     geom_hline(yintercept = 0.0)+
-   geom_hline(yintercept = 0.5, linetype = "dashed")+
+   geom_hline(yintercept = 50, linetype = "dashed")+
   geom_point()+
   geom_line(aes(linetype = game)) +
-  geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Civ')),
+  geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% 
+                     filter(str_detect(game, 'Civ')),
                   size          = 4,
                   box.padding   = 0.5,
-                  point.padding = 0.5,
+                  point.padding = 1,
                   line.padding  = 0.5,
-                  force         = 100,
+                  force         = 200,
                   segment.size  = 0.2,
-                  nudge_y       = 0.2)+
-    geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% filter(str_detect(game, 'Age')),
+                  nudge_y       = 3,
+                  max.iter = 3e3)+
+      geom_label_repel(data = . %>% filter(str_detect(expansion, 'original')) %>% 
+                       filter(str_detect(game, 'Age')),
                   size          = 4,
                   box.padding   = 0.5,
-                  point.padding = 0.5,
-                  force         = 100,
+                  point.padding = 1,
+                  force         = 200,
                   segment.size  = 0.2,
-                  nudge_y       = -0.2)+
+                  nudge_y       = -2,
+                   max.iter = 3e3)+
   theme_minimal()+
-  ggtitle("Ratio of female AI leaders per game", subtitle = "with later expansions")+
+  ggtitle("Percentage of female AI leaders per game", subtitle = "with later expansions")+
   guides(linetype = FALSE)+
   scale_x_date(expand = expansion(mult = c(0.2, .2)),
                name = "release date") +
   scale_y_continuous(expand = expansion(mult = c(0.2, .2)),
-                     name = "cumulative ratio",
-                     breaks = seq(0.0, 0.6, 0.1))
+                     name = "cumulative percentage",
+                     breaks = seq(0, 60, 10))
 
 ggsave("leaders_cumulative.png", dpi = 300)
 
